@@ -85,7 +85,7 @@ def create_refresh_token(user: User) -> str:
 
 def decode_token(token: str) -> dict:
     try:
-        return jwt.decode(
+        payload = jwt.decode(
             token,
             JWT_SECRET,
             algorithms=[JWT_ALGORITHM],
@@ -93,6 +93,18 @@ def decode_token(token: str) -> dict:
         )
     except jwt.PyJWTError:
         raise AppError(401, "UNAUTHORIZED", "Invalid or expired token")
+    if payload.get("type") not in {"access", "refresh"}:
+        raise AppError(401, "UNAUTHORIZED", "Invalid token claims")
+    if not isinstance(payload.get("jti"), str) or not payload["jti"]:
+        raise AppError(401, "UNAUTHORIZED", "Invalid token claims")
+    try:
+        int(payload["sub"])
+        int(payload["org"])
+        int(payload["iat"])
+        int(payload["exp"])
+    except (TypeError, ValueError):
+        raise AppError(401, "UNAUTHORIZED", "Invalid token claims")
+    return payload
 
 
 def revoke_access_token(payload: dict) -> None:

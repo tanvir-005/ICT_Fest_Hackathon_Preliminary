@@ -94,7 +94,6 @@ def refresh(payload: RefreshRequest, db: Session = Depends(get_db)):
     data = decode_token(payload.refresh_token)
     if data.get("type") != "refresh":
         raise AppError(401, "UNAUTHORIZED", "Wrong token type")
-    consume_refresh_token(data)
     try:
         user_id = int(data["sub"])
         org_id = int(data["org"])
@@ -103,6 +102,7 @@ def refresh(payload: RefreshRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id, User.org_id == org_id).first()
     if user is None:
         raise AppError(401, "UNAUTHORIZED", "Unknown user")
+    consume_refresh_token(data)
     return {
         "access_token": create_access_token(user),
         "refresh_token": create_refresh_token(user),

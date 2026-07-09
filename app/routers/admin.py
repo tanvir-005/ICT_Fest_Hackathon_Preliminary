@@ -67,5 +67,5 @@ def export(
         room = db.query(Room).filter(Room.id == room_id, Room.org_id == admin.org_id).first()
         if room is None:
             raise AppError(404, "ROOM_NOT_FOUND", "Room not found")
-    csv_body = generate_export(db, admin.org_id, admin.id, room_id, include_all)
+    csv_body = generate_export(db, admin.org_id, None, room_id, include_all)
     return Response(content=csv_body, media_type="text/csv")

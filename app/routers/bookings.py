@@ -6,14 +6,13 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from .. import cache
 from ..auth import get_current_user
 from ..database import get_db
 from ..errors import AppError
 from ..models import Booking, Room, User
 from ..schemas import BookingCreateRequest
 from ..serializers import serialize_booking
-from ..services import notifications, ratelimit, reference, stats
+from ..services import notifications, ratelimit, reference
 from ..services.refunds import log_refund
 from ..timeutils import iso_utc, parse_input_datetime
 
@@ -122,8 +121,6 @@ def create_booking(
         else:
             raise AppError(409, "ROOM_CONFLICT", "Unable to create unique booking")
 
-    stats.record_create(room.id, price_cents)
-    cache.invalidate_availability(room.id, start.date().isoformat())
     notifications.notify_created(booking)
 
     return serialize_booking(booking)
@@ -225,8 +222,6 @@ def cancel_booking(
             raise AppError(409, "ALREADY_CANCELLED", "Booking already cancelled")
         db.refresh(booking)
 
-    stats.record_cancel(booking.room_id, booking.price_cents)
-    cache.invalidate_report(user.org_id)
     notifications.notify_cancelled(booking)
 
     return {
